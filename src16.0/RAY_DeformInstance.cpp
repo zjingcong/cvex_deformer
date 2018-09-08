@@ -139,17 +139,18 @@ int RAY_DeformInstance::initialize(const UT_BoundingBox *box)
 		polyframe_flags[0], polyframe_flags[1], polyframe_flags[2], polyframe_flags[3], polyframe_flags[4]);
 	
 	// load polyframeParms
+    ///! BUG HERE: somehow set names for tangent and bitangent doesn't work, can only use default names: tangentu/tangentv
 	GU_PolyFrameParms polyframe_parms;
+    UT_StringHolder N_name, tangentu_name, tangentv_name;
 	if (polyframe_flags[0] || polyframe_flags[1] || polyframe_flags[2] || polyframe_flags[3] || polyframe_flags[4])
 	{
 		import("which", &polyframe_parms.which, 1);
-		UT_StringHolder N_name, tangentu_name, tangentv_name;
 		import("normName", N_name);
 		import("tanName", tangentu_name);
 		import("bitanName", tangentv_name);
-		polyframe_parms.names[0] = tangentu_name.c_str();
-		polyframe_parms.names[1] = tangentv_name.c_str();
-		polyframe_parms.names[2] = N_name.c_str();
+		polyframe_parms.names[0] = tangentu_name.c_str();   // GU_POLYFRAME_TANGENT        = 1,
+		polyframe_parms.names[1] = tangentv_name.c_str();   // GU_POLYFRAME_BITANGENT      = 1 << 1,
+		polyframe_parms.names[2] = N_name.c_str();          // GU_POLYFRAME_NORMAL         = 1 << 2,
 		int orthogonal, left_handed;
 		import("orthogonal", &orthogonal, 1);
 		import("leftHanded", &left_handed, 1);
@@ -168,7 +169,7 @@ int RAY_DeformInstance::initialize(const UT_BoundingBox *box)
 		import("uvName", uv_name);
 		polyframe_parms.uv_name = uv_name.c_str();
 		VRAYprintf(0, "Load polyframe parm: \n\twhich: %d\n\tnormName: %s, tanName: %s, bitanName: %s\n\torthogonal: %d\n\tleftHanded: %d\n\tstyle: %d\n\tuvName: %s",
-			polyframe_parms.which, polyframe_parms.names[2], polyframe_parms.names[1], polyframe_parms.names[2], orthogonal, left_handed, style, polyframe_parms.uv_name);
+			polyframe_parms.which, polyframe_parms.names[2], polyframe_parms.names[0], polyframe_parms.names[1], orthogonal, left_handed, style, polyframe_parms.uv_name);
 	}
 
 	/// import cvex
@@ -212,7 +213,6 @@ int RAY_DeformInstance::initialize(const UT_BoundingBox *box)
 	}
 	else
 	{
-		/// test
 		std::vector<UT_Vector3> positions;
 		std::vector<UT_StringHolder> instancefiles;
 		// load point cloud

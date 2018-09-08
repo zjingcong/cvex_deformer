@@ -143,9 +143,9 @@ namespace HDK_Deform
 		void polyFrame(GU_Detail *gd);
 
 		/// cvex
-		void executeCVEX(GU_Detail *gd, fpreal32 shutter);
+		void executeCVEX(GU_Detail *gd, fpreal32* shutter);
 		// cvex processing
-		bool processCVEX(CVEX_Context &context, CVEX_RunData &rundata, GU_Detail *gd, int gid, int size, int tid, fpreal32 shutter);
+		bool processCVEX(CVEX_Context &context, CVEX_RunData &rundata, GU_Detail *gd, int gid, int size, int tid, fpreal32* shutter);
 		// get geom attributes
 		void getGeomAttribs(GU_Detail *gd);
 		// set cvex function inputs from geom attributes
@@ -153,7 +153,7 @@ namespace HDK_Deform
 		// load cvex function
 		bool loadCVEX(CVEX_Context &context);
 		// find cvex function inputs and outputs, allocate memory for output results
-		void findCVEX(CVEX_Context &context, GU_Detail *gd, int gid, int size, int tid, fpreal32 shutter);
+        void findCVEX(CVEX_Context &context, GU_Detail *gd, int gid, int size, int tid, fpreal32* shutter);
 		void setCVEXOutput(CVEX_Context &context, GU_Detail *gd, int gid, int size, int tid);
 		// create new output
 		void createGeomAttribFromCVEXOutput(CVEX_Context &context, GU_Detail *gd);
@@ -199,7 +199,7 @@ namespace HDK_Deform
 				// load cvex
 				if (!instance_pt->loadCVEX(cvex)) { return false; }
 				// allocate memory for input and output
-				instance_pt->findCVEX(cvex, gd, gid, size, tid, shutter);
+				instance_pt->findCVEX(cvex, gd, gid, size, tid, &shutter);
 				// run cvex program
 				cvex.run(size, true, &rundata);
 				// pass cvex result back to geom

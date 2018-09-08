@@ -119,17 +119,18 @@ int RAY_Deform::preprocess()
 		}
 	}
 
+    // fpreal32 current_shutter;
 	/// execute cvex on different shutter GU_Details
 	for (int guid = 0; guid < gdlist.size(); ++guid)
 	{
 		GU_Detail* current_gd = gdlist[guid];
-		fpreal32 current_shutter = shutterlist[guid];
+        fpreal32 *current_shutter = shutterlist.data() + guid;
 
 		// move to center
 		current_gd->translate(center_pos);
 
 		/// pre polyframe
-		if (polyframe_flags[0])	{ for (auto current_gd : gdlist)	{ polyFrame(current_gd);} }
+		if (polyframe_flags[0])	{ /*for (auto current_gd : gdlist)*/	{ polyFrame(current_gd);} }
 
 		/// execute different cvex files
 		for (int i = 0; i < cvexfiles.size(); ++i)
@@ -147,7 +148,7 @@ int RAY_Deform::preprocess()
 			cleanBuffer();
 
 			// post polyframe after each cvex
-			if (polyframe_flags[i + 1]) { for (auto current_gd : gdlist) { polyFrame(current_gd); } }
+			if (polyframe_flags[i + 1]) { /*for (auto current_gd : gdlist)*/ { polyFrame(current_gd); } }
 		}
 	}
 
@@ -287,7 +288,7 @@ void RAY_Deform::velBBox(GU_Detail *gd, UT_BoundingBox& box)
 void RAY_Deform::polyFrame(GU_Detail *gd)
 {
 	GU_PolyFrame polyframe(gd);
-	GU_PolyFrameError err = polyframe.computeFrames(polyframe_parms);
+    GU_PolyFrameError err = polyframe.computeFrames(polyframe_parms);
 	switch (err)
 	{
 	case GU_POLYFRAME_CREATE_ATTRIBUTE_FAILED:
@@ -307,7 +308,7 @@ void RAY_Deform::polyFrame(GU_Detail *gd)
 
 /// CVEX
 
-void RAY_Deform::executeCVEX(GU_Detail *gd, fpreal32 shutter)
+void RAY_Deform::executeCVEX(GU_Detail *gd, fpreal32* shutter)
 {
 	int total_size;
 	// set cvex size
@@ -382,7 +383,7 @@ void RAY_Deform::executeCVEX(GU_Detail *gd, fpreal32 shutter)
 	void* data = nullptr;
 	for (int tid = 0; tid < thread_num; tid++)
 	{
-		procDataBuffer[tid] = new CVEXProcessData(this, gd, threadcmds, tid, total_size, thread_num, shutter);
+		procDataBuffer[tid] = new CVEXProcessData(this, gd, threadcmds, tid, total_size, thread_num, *shutter);
 		data = procDataBuffer[tid];
 		threads.append(UT_Thread::allocThread(UT_Thread::ThreadLowUsage));
 		if (!threads(tid) || !threads(tid)->startThread(&executeSingleCVEX, data))
@@ -415,7 +416,7 @@ void RAY_Deform::executeCVEX(GU_Detail *gd, fpreal32 shutter)
 	delete[] procDataBuffer;
 }
 
-bool RAY_Deform::processCVEX(CVEX_Context &context, CVEX_RunData &rundata, GU_Detail *gd, int gid, int size, int tid, fpreal32 shutter)
+bool RAY_Deform::processCVEX(CVEX_Context &context, CVEX_RunData &rundata, GU_Detail *gd, int gid, int size, int tid, fpreal32* shutter)
 {
 	// parse geom attrib
 	getGeomAttribs(gd);
@@ -427,6 +428,7 @@ bool RAY_Deform::processCVEX(CVEX_Context &context, CVEX_RunData &rundata, GU_De
 	createGeomAttribFromCVEXOutput(context, gd);
 	// allocate memory for input and output
 	findCVEX(context, gd, gid, size, tid, shutter);
+
 	// run cvex program
 	context.run(size, true, &rundata);
 	// pass cvex result back to geom
@@ -486,6 +488,7 @@ void RAY_Deform::addCVEXInput(CVEX_Context &context)
 	/// add instance and shutter as uniform input
 	context.addInput("instance", CVEX_TYPE_INTEGER, false);
 	context.addInput("shutter", CVEX_TYPE_FLOAT, false);
+
 	/// add extra uniform input
 	for (const auto & attribinfo : cvex_extraAttribs.floatAttribMap)
 	{
@@ -527,15 +530,16 @@ bool RAY_Deform::loadCVEX(CVEX_Context &context)
 		VRAYerrorOnce("CVEX %s as runtype %d: Cannot load CVEX.", inputcvex.c_str(), cvex_runtype);
 		return false;
 	}
-	// RAYprintf(0, "Load cvex success: %s", shoppath.c_str());
+	// VRAYprintf(0, "Load cvex success: %s", shoppath.c_str());
 	return true;
 }
 
-void RAY_Deform::findCVEX(CVEX_Context &context, GU_Detail *gd, int gid, int size, int tid, fpreal32 shutter)
+void RAY_Deform::findCVEX(CVEX_Context &context, GU_Detail *gd, int gid, int size, int tid, fpreal32* shutter)
 {
 	/// set instance input
 	findTypedUniformInput(context, "instance", &instance_id);
-	findTypedUniformInput(context, "shutter", &shutter);
+	findTypedUniformInput(context, "shutter", shutter);
+
 	/// set extra uniform input
 	for (const auto & attribinfo : cvex_extraAttribs.floatAttribMap)
 	{
